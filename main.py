@@ -797,6 +797,110 @@ class GameEngine:
             
         self.screen.blit(dash_bg, (w - 200, h - 66))
 
+        # 6. Portal Off-Screen Indicator
+        if self.portal and self.portal.active:
+            px = self.portal.x - self.camera_x
+            py = self.portal.y - self.camera_y
+            
+            margin = 40
+            if px < margin or px > w - margin or py < margin or py > h - margin:
+                cx_scr = w / 2
+                cy_scr = h / 2
+                dx = px - cx_scr
+                dy = py - cy_scr
+                
+                t = 1000.0
+                limit_x = w / 2 - margin
+                limit_y = h / 2 - margin
+                
+                if dx != 0:
+                    tx = limit_x / abs(dx)
+                    if tx < t: t = tx
+                if dy != 0:
+                    ty = limit_y / abs(dy)
+                    if ty < t: t = ty
+                    
+                mx = cx_scr + t * dx
+                my = cy_scr + t * dy
+                
+                # Collision avoidance with HUD elements
+                # Bottom-Right (Dash card)
+                if mx > w - 210 and my > h - 76:
+                    if (w - mx) < (h - my):
+                        mx = w - 220
+                    else:
+                        my = h - 86
+                # Bottom-Left (Lives card)
+                elif mx < 180 and my > h - 76:
+                    if mx < (h - my):
+                        mx = 190
+                    else:
+                        my = h - 86
+                # Top-Right (Objective card)
+                elif mx > w - 310 and my < 94:
+                    if (w - mx) < my:
+                        mx = w - 320
+                    else:
+                        my = 104
+                # Top-Left (Hunger card)
+                elif mx < 310 and my < 80:
+                    if mx < my:
+                        mx = 320
+                    else:
+                        my = 90
+                # Top-Center (Timer card)
+                elif w//2 - 90 < mx < w//2 + 90 and my < 72:
+                    my = 82
+                
+                # Normalize direction
+                dist = math.hypot(dx, dy)
+                if dist > 0:
+                    ux = dx / dist
+                    uy = dy / dist
+                else:
+                    ux, uy = 0, -1
+                    
+                # Pulsing size
+                pulse = math.sin(pygame.time.get_ticks() * 0.01) * 3
+                radius = 16 + int(pulse)
+                
+                # Draw marker background
+                marker_surf = pygame.Surface((radius * 2 + 10, radius * 2 + 10), pygame.SRCALPHA)
+                mcx = marker_surf.get_width() // 2
+                mcy = marker_surf.get_height() // 2
+                
+                # Outer glowing circle
+                pygame.draw.circle(marker_surf, (46, 204, 113, 80), (mcx, mcy), radius + 4)
+                # Inner solid circle
+                pygame.draw.circle(marker_surf, (6, 20, 10, 220), (mcx, mcy), radius)
+                pygame.draw.circle(marker_surf, (46, 204, 113), (mcx, mcy), radius, width=2)
+                
+                # Draw arrow pointing to portal inside marker_surf
+                tx_arrow = mcx + ux * 8
+                ty_arrow = mcy + uy * 8
+                bx_arrow = mcx - ux * 6
+                by_arrow = mcy - uy * 6
+                nx = -uy
+                ny = ux
+                
+                p1 = (tx_arrow, ty_arrow)
+                p2 = (bx_arrow + nx * 5, by_arrow + ny * 5)
+                p3 = (bx_arrow - nx * 5, by_arrow - ny * 5)
+                
+                pygame.draw.polygon(marker_surf, (241, 196, 15), [p1, p2, p3])
+                
+                # Blit marker
+                self.screen.blit(marker_surf, (int(mx - mcx), int(my - mcy)))
+                
+                # Text distance indicator
+                dist_m = int(math.hypot(self.player.x - self.portal.x, self.player.y - self.portal.y) / 10)
+                txt = self.font_body.render(f"{dist_m}m", True, (255, 255, 255))
+                
+                # Place text below or above the marker depending on screen hemisphere
+                tx_x = int(mx - txt.get_width() // 2)
+                tx_y = int(my - radius - 18 if my > h // 2 else my + radius + 6)
+                self.screen.blit(txt, (tx_x, tx_y))
+
     def draw_menu(self):
         w, h = self.screen.get_size()
         bg = pygame.Surface((w, h), pygame.SRCALPHA)
