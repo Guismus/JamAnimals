@@ -793,8 +793,10 @@ class GameEngine:
         # Left Column: How to play
         left_x = w//2 - 410
         left_y = badge_y + 40
-        pygame.draw.rect(self.screen, (255,255,255,5), (left_x, left_y, 400, 320), border_radius=16)
-        pygame.draw.rect(self.screen, (255,255,255,10), (left_x, left_y, 400, 320), width=1, border_radius=16)
+        card_surf = pygame.Surface((400, 320), pygame.SRCALPHA)
+        pygame.draw.rect(card_surf, (0, 0, 0, 105), (0, 0, 400, 320), border_radius=16)
+        pygame.draw.rect(card_surf, (46, 204, 113, 60), (0, 0, 400, 320), width=1, border_radius=16)
+        self.screen.blit(card_surf, (left_x, left_y))
         
         lbl_inst = self.font_header.render("HOW TO PLAY", True, (46, 204, 113))
         self.screen.blit(lbl_inst, (left_x + 20, left_y + 20))
@@ -823,8 +825,10 @@ class GameEngine:
         right_y = badge_y + 40
         
         # Audio setting card
-        pygame.draw.rect(self.screen, (0,0,0,50), (right_x, right_y, 380, 60), border_radius=12)
-        pygame.draw.rect(self.screen, (255,255,255,10), (right_x, right_y, 380, 60), width=1, border_radius=12)
+        audio_card = pygame.Surface((380, 60), pygame.SRCALPHA)
+        pygame.draw.rect(audio_card, (0, 0, 0, 105), (0, 0, 380, 60), border_radius=12)
+        pygame.draw.rect(audio_card, (46, 204, 113, 40), (0, 0, 380, 60), width=1, border_radius=12)
+        self.screen.blit(audio_card, (right_x, right_y))
         
         audio_lbl = self.font_body.render("Synthesized Sound FX:", True, (200, 210, 202))
         self.screen.blit(audio_lbl, (right_x + 20, right_y + 20))
@@ -840,8 +844,10 @@ class GameEngine:
 
         # Levels Progress Card (Replaced Leaderboard)
         lead_y = right_y + 155
-        pygame.draw.rect(self.screen, (0,0,0,80), (right_x, lead_y, 380, 165), border_radius=16)
-        pygame.draw.rect(self.screen, (46, 204, 113, 20), (right_x, lead_y, 380, 165), width=1, border_radius=16)
+        level_card = pygame.Surface((380, 165), pygame.SRCALPHA)
+        pygame.draw.rect(level_card, (0, 0, 0, 105), (0, 0, 380, 165), border_radius=16)
+        pygame.draw.rect(level_card, (46, 204, 113, 40), (0, 0, 380, 165), width=1, border_radius=16)
+        self.screen.blit(level_card, (right_x, lead_y))
         
         lead_lbl = self.font_subtitle.render("ADVENTURE MAPS", True, (241, 196, 15))
         self.screen.blit(lead_lbl, (right_x + 105, lead_y + 12))
