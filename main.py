@@ -159,11 +159,11 @@ class GameEngine:
                 "bridges": [
                     # Central Island
                     {"x": 1200, "y": 1200, "w": 0, "h": 0, "shape": "circle", "r": 120},
-                    # Bridges
-                    {"x": 1200, "y": 940, "w": 90, "h": 200, "shape": "rect", "r": 0},
-                    {"x": 1200, "y": 1460, "w": 90, "h": 200, "shape": "rect", "r": 0},
-                    {"x": 940, "y": 1200, "w": 200, "h": 90, "shape": "rect", "r": 0},
-                    {"x": 1460, "y": 1200, "w": 200, "h": 90, "shape": "rect", "r": 0}
+                    # Bridges (lengthened to 260 to bridge the 220px water ring and overlap the central island)
+                    {"x": 1200, "y": 970, "w": 90, "h": 260, "shape": "rect", "r": 0},
+                    {"x": 1200, "y": 1430, "w": 90, "h": 260, "shape": "rect", "r": 0},
+                    {"x": 970, "y": 1200, "w": 260, "h": 90, "shape": "rect", "r": 0},
+                    {"x": 1430, "y": 1200, "w": 260, "h": 90, "shape": "rect", "r": 0}
                 ]
             },
             {
