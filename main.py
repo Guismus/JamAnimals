@@ -694,77 +694,108 @@ class GameEngine:
         hud_bg = pygame.Surface((280, 50), pygame.SRCALPHA)
         hud_bg.fill((4, 12, 6, 200))
         pygame.draw.rect(hud_bg, (46, 204, 113, 50), (0, 0, 280, 50), border_radius=10, width=1)
-        self.screen.blit(hud_bg, (20, 20))
         
         pct = max(0.0, min(100.0, self.player.hunger))
-        fill_w = int(210 * (pct / 100.0))
         color = (255, 71, 87) if pct < 25 else (244, 107, 45)
         lbl = self.font_subtitle.render("HUNGER", True, color)
-        self.screen.blit(lbl, (32, 34))
         
-        pygame.draw.rect(self.screen, (30, 45, 35), (100, 38, 210, 10), border_radius=5)
+        # Text vertical centering
+        lbl_x = 16
+        lbl_y = (50 - lbl.get_height()) // 2
+        hud_bg.blit(lbl, (lbl_x, lbl_y))
+        
+        # Bar geometry inside container
+        bar_x = lbl_x + lbl.get_width() + 12
+        bar_y = (50 - 12) // 2
+        bar_w = 280 - bar_x - 16
+        bar_h = 12
+        
+        pygame.draw.rect(hud_bg, (30, 45, 35), (bar_x, bar_y, bar_w, bar_h), border_radius=6)
+        fill_w = int(bar_w * (pct / 100.0))
         if fill_w > 0:
-            pygame.draw.rect(self.screen, color, (100, 38, fill_w, 10), border_radius=5)
-
+            pygame.draw.rect(hud_bg, color, (bar_x, bar_y, fill_w, bar_h), border_radius=6)
+            
+        self.screen.blit(hud_bg, (20, 20))
+        
         # 2. Day/Night timer
         cycle_bg = pygame.Surface((140, 42), pygame.SRCALPHA)
         cycle_bg.fill((4, 12, 6, 200))
         pygame.draw.rect(cycle_bg, (46, 204, 113, 50), (0, 0, 140, 42), border_radius=8, width=1)
-        self.screen.blit(cycle_bg, (w//2 - 70, 20))
         
         cycle_lbl = "NIGHT" if self.is_night else "DAY"
         cycle_col = (155, 89, 182) if self.is_night else (241, 196, 15)
         txt = self.font_header.render(f"{cycle_lbl} {math.ceil(self.cycle_timer/60)}s", True, cycle_col)
-        self.screen.blit(txt, (w//2 - txt.get_width()//2, 30))
+        
+        # Center text inside cycle_bg
+        txt_x = (140 - txt.get_width()) // 2
+        txt_y = (42 - txt.get_height()) // 2
+        cycle_bg.blit(txt, (txt_x, txt_y))
+        
+        self.screen.blit(cycle_bg, (w//2 - 70, 20))
 
         # 3. Objective & Level stats top right (No scores)
         stats_bg = pygame.Surface((280, 64), pygame.SRCALPHA)
         stats_bg.fill((4, 12, 6, 200))
         pygame.draw.rect(stats_bg, (46, 204, 113, 50), (0, 0, 280, 64), border_radius=10, width=1)
-        self.screen.blit(stats_bg, (w - 300, 20))
         
         level_lbl = self.font_subtitle.render(config["name"], True, (46, 204, 113))
-        self.screen.blit(level_lbl, (w - 280, 24))
+        # Left margin 16px, vertically centered in top half (height 32)
+        level_lbl_y = (32 - level_lbl.get_height()) // 2
+        stats_bg.blit(level_lbl, (16, level_lbl_y))
         
         if self.rabbits_caught >= self.rabbits_needed:
             # Active escape prompt
             obj_txt = self.font_header.render("PORTAL OPEN! RUN TO CENTER", True, (241, 196, 15))
-            self.screen.blit(obj_txt, (w - 280, 50))
         else:
             obj_txt = self.font_body.render(f"Rabbits eaten: {self.rabbits_caught} / {self.rabbits_needed}", True, (255, 255, 255))
-            self.screen.blit(obj_txt, (w - 280, 52))
+            
+        # Left margin 16px, vertically centered in bottom half (y=32 to y=64)
+        obj_txt_y = 32 + (32 - obj_txt.get_height()) // 2
+        stats_bg.blit(obj_txt, (16, obj_txt_y))
+        
+        self.screen.blit(stats_bg, (w - 300, 20))
 
         # 4. Lives bottom left
         lives_bg = pygame.Surface((150, 46), pygame.SRCALPHA)
         lives_bg.fill((4, 12, 6, 200))
         pygame.draw.rect(lives_bg, (46, 204, 113, 50), (0, 0, 150, 46), border_radius=10, width=1)
-        self.screen.blit(lives_bg, (20, h - 66))
         
+        # Center hearts in lives_bg
+        cx = 150 // 2
+        cy = 46 // 2
         for i in range(self.player.max_lives):
-            hx = 32 + i * 28
-            hy = h - 48
+            hx = cx - ((self.player.max_lives - 1) * 28) // 2 + i * 28
+            hy = cy
             active = i < self.player.lives
             col = (255, 71, 87) if active else (40, 55, 45)
-            pygame.draw.circle(self.screen, col, (hx - 5, hy - 4), 6)
-            pygame.draw.circle(self.screen, col, (hx + 5, hy - 4), 6)
-            pygame.draw.polygon(self.screen, col, [(hx - 11, hy - 2), (hx + 11, hy - 2), (hx, hy + 10)])
+            pygame.draw.circle(lives_bg, col, (hx - 5, hy - 4), 6)
+            pygame.draw.circle(lives_bg, col, (hx + 5, hy - 4), 6)
+            pygame.draw.polygon(lives_bg, col, [(hx - 11, hy - 2), (hx + 11, hy - 2), (hx, hy + 10)])
+            
+        self.screen.blit(lives_bg, (20, h - 66))
 
         # 5. Dash Cooldown bottom right
         dash_bg = pygame.Surface((180, 46), pygame.SRCALPHA)
         dash_bg.fill((4, 12, 6, 200))
         pygame.draw.rect(dash_bg, (46, 204, 113, 50), (0, 0, 180, 46), border_radius=10, width=1)
-        self.screen.blit(dash_bg, (w - 200, h - 66))
         
         dash_lbl = self.font_body.render("DASH (SPACE)", True, (143, 168, 150))
-        self.screen.blit(dash_lbl, (w - 188, h - 60))
+        # Horizontal margin: 12px. Vertical margin: top-aligned
+        dash_lbl_x = 12
+        dash_lbl_y = 6
+        dash_bg.blit(dash_lbl, (dash_lbl_x, dash_lbl_y))
         
         dash_pct = 1.0 - (self.player.dash_cooldown / 90.0) if self.player.dash_cooldown > 0 else 1.0
         dash_fill_w = int(156 * dash_pct)
-        pygame.draw.rect(self.screen, (30, 45, 35), (w - 188, h - 38, 156, 6), border_radius=3)
+        # Bar bottom margin: 8px. Height: 6px.
+        bar_y = 46 - 8 - 6
+        pygame.draw.rect(dash_bg, (30, 45, 35), (12, bar_y, 156, 6), border_radius=3)
         
         dash_col = (46, 204, 113) if dash_pct == 1.0 and self.player.hunger >= 15 else (92, 115, 98)
         if dash_fill_w > 0:
-            pygame.draw.rect(self.screen, dash_col, (w - 188, h - 38, dash_fill_w, 6), border_radius=3)
+            pygame.draw.rect(dash_bg, dash_col, (12, bar_y, dash_fill_w, 6), border_radius=3)
+            
+        self.screen.blit(dash_bg, (w - 200, h - 66))
 
     def draw_menu(self):
         w, h = self.screen.get_size()
