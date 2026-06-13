@@ -8,86 +8,9 @@ import random
 import sound_gen
 from entities import Player, Rabbit, Wolf, Lake, Bridge, Portal, Bush, Burrow, Berry, is_in_impassable_water
 from particles import ParticleSystem, draw_circle_alpha, draw_rect_alpha
-
-# Constants
-ARENA_WIDTH = 2400
-ARENA_HEIGHT = 2400
-DAY_NIGHT_DURATION = 30 * 60 # 30 seconds at 60 FPS
-
-class SoundController:
-    def __init__(self):
-        self.enabled = True
-        self.sounds = {}
-        # Pre-synthesize sound files if missing
-        sound_gen.generate_all_sounds("sounds")
-        
-        # Load WAV files
-        sound_files = ["catch", "dash", "hurt", "alert", "night", "heartbeat"]
-        for s in sound_files:
-            path = os.path.join("sounds", f"{s}.wav")
-            if os.path.exists(path):
-                try:
-                    self.sounds[s] = pygame.mixer.Sound(path)
-                except Exception as e:
-                    print(f"Error loading sound {s}: {e}")
-                    
-        # Heartbeat controls
-        self.heartbeat_rate = 0
-        self.heartbeat_timer = 0
-
-    def set_enabled(self, val):
-        self.enabled = val
-
-    def play(self, name):
-        if self.enabled and name in self.sounds:
-            self.sounds[name].play()
-
-    def set_heartbeat_rate(self, rate):
-        self.heartbeat_rate = rate
-
-    def update(self):
-        if not self.enabled or self.heartbeat_rate == 0:
-            return
-            
-        self.heartbeat_timer -= 1
-        if self.heartbeat_timer <= 0:
-            self.play("heartbeat")
-            if self.heartbeat_rate == 1:
-                self.heartbeat_timer = 54 # slow
-            elif self.heartbeat_rate == 2:
-                self.heartbeat_timer = 36 # medium
-            elif self.heartbeat_rate == 3:
-                self.heartbeat_timer = 18 # fast
-
-
-class Button:
-    def __init__(self, rect, text, bg_color, hover_color, text_color, font_size=20):
-        self.rect = pygame.Rect(rect)
-        self.text = text
-        self.bg_color = bg_color
-        self.hover_color = hover_color
-        self.text_color = text_color
-        self.hovered = False
-        self.font = pygame.font.SysFont('Arial', font_size, bold=True)
-
-    def update(self, mouse_pos):
-        self.hovered = self.rect.collidepoint(mouse_pos)
-
-    def draw(self, surface):
-        color = self.hover_color if self.hovered else self.bg_color
-        # Draw button
-        pygame.draw.rect(surface, color, self.rect, border_radius=10)
-        pygame.draw.rect(surface, (46, 204, 113, 120), self.rect, width=1, border_radius=10)
-        
-        txt = self.font.render(self.text, True, self.text_color)
-        surface.blit(txt, (self.rect.centerx - txt.get_width()//2, self.rect.centery - txt.get_height()//2))
-
-    def handle_event(self, event, mouse_pos):
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.rect.collidepoint(mouse_pos):
-                return True
-        return False
-
+from config import ARENA_WIDTH, ARENA_HEIGHT, DAY_NIGHT_DURATION, LEVEL_CONFIGS
+from audio import SoundController
+from ui import Button
 
 class GameEngine:
     def __init__(self):
@@ -134,59 +57,7 @@ class GameEngine:
         self.total_rabbits_caught = 0
         self.survival_frames = 0
         
-        self.LEVEL_CONFIGS = [
-            {
-                "name": "Level 1: The Bridges Crossing",
-                "rabbits_needed": 5,
-                "description": "A horizontal river cuts the forest in half. Wolves guard the two bridges.",
-                "portal_pos": (1200, 900),
-                "lakes": [
-                    {"x": 1200, "y": 1200, "w": 2400, "h": 220, "shape": "rect", "r": 0}
-                ],
-                "bridges": [
-                    {"x": 600, "y": 1200, "w": 140, "h": 260, "shape": "rect", "r": 0},
-                    {"x": 1800, "y": 1200, "w": 140, "h": 260, "shape": "rect", "r": 0}
-                ]
-            },
-            {
-                "name": "Level 2: The Sacred Isle",
-                "rabbits_needed": 5,
-                "description": "A deep circular lake surrounds a central island. Four bridges lead to the center.",
-                "portal_pos": (1200, 1200),
-                "lakes": [
-                    {"x": 1200, "y": 1200, "w": 0, "h": 0, "shape": "circle", "r": 340}
-                ],
-                "bridges": [
-                    # Central Island
-                    {"x": 1200, "y": 1200, "w": 0, "h": 0, "shape": "circle", "r": 120},
-                    # Bridges (lengthened to 260 to bridge the 220px water ring and overlap the central island)
-                    {"x": 1200, "y": 970, "w": 90, "h": 260, "shape": "rect", "r": 0},
-                    {"x": 1200, "y": 1430, "w": 90, "h": 260, "shape": "rect", "r": 0},
-                    {"x": 970, "y": 1200, "w": 260, "h": 90, "shape": "rect", "r": 0},
-                    {"x": 1430, "y": 1200, "w": 260, "h": 90, "shape": "rect", "r": 0}
-                ]
-            },
-            {
-                "name": "Level 3: The Canal Labyrinth",
-                "rabbits_needed": 5,
-                "description": "Multiple streams partition the clearing. Navigate the bridge network to escape.",
-                "portal_pos": (1200, 1200),
-                "lakes": [
-                    {"x": 1200, "y": 700, "w": 2400, "h": 120, "shape": "rect", "r": 0},
-                    {"x": 1200, "y": 1700, "w": 2400, "h": 120, "shape": "rect", "r": 0},
-                    {"x": 1200, "y": 1200, "w": 120, "h": 2400, "shape": "rect", "r": 0}
-                ],
-                "bridges": [
-                    {"x": 600, "y": 700, "w": 120, "h": 160, "shape": "rect", "r": 0},
-                    {"x": 1800, "y": 700, "w": 120, "h": 160, "shape": "rect", "r": 0},
-                    {"x": 600, "y": 1700, "w": 120, "h": 160, "shape": "rect", "r": 0},
-                    {"x": 1800, "y": 1700, "w": 120, "h": 160, "shape": "rect", "r": 0},
-                    {"x": 1200, "y": 400, "w": 160, "h": 120, "shape": "rect", "r": 0},
-                    {"x": 1200, "y": 2000, "w": 160, "h": 120, "shape": "rect", "r": 0},
-                    {"x": 1200, "y": 1200, "w": 160, "h": 320, "shape": "rect", "r": 0}
-                ]
-            }
-        ]
+        self.LEVEL_CONFIGS = LEVEL_CONFIGS
         
         self.generate_forest_static()
         
