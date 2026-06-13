@@ -139,6 +139,7 @@ class GameEngine:
                 "name": "Level 1: The Bridges Crossing",
                 "rabbits_needed": 5,
                 "description": "A horizontal river cuts the forest in half. Wolves guard the two bridges.",
+                "portal_pos": (1200, 900),
                 "lakes": [
                     {"x": 1200, "y": 1200, "w": 2400, "h": 220, "shape": "rect", "r": 0}
                 ],
@@ -151,6 +152,7 @@ class GameEngine:
                 "name": "Level 2: The Sacred Isle",
                 "rabbits_needed": 5,
                 "description": "A deep circular lake surrounds a central island. Four bridges lead to the center.",
+                "portal_pos": (1200, 1200),
                 "lakes": [
                     {"x": 1200, "y": 1200, "w": 0, "h": 0, "shape": "circle", "r": 340}
                 ],
@@ -168,6 +170,7 @@ class GameEngine:
                 "name": "Level 3: The Canal Labyrinth",
                 "rabbits_needed": 5,
                 "description": "Multiple streams partition the clearing. Navigate the bridge network to escape.",
+                "portal_pos": (1200, 1200),
                 "lakes": [
                     {"x": 1200, "y": 700, "w": 2400, "h": 120, "shape": "rect", "r": 0},
                     {"x": 1200, "y": 1700, "w": 2400, "h": 120, "shape": "rect", "r": 0},
@@ -180,8 +183,7 @@ class GameEngine:
                     {"x": 1800, "y": 1700, "w": 120, "h": 160, "shape": "rect", "r": 0},
                     {"x": 1200, "y": 400, "w": 160, "h": 120, "shape": "rect", "r": 0},
                     {"x": 1200, "y": 2000, "w": 160, "h": 120, "shape": "rect", "r": 0},
-                    {"x": 1200, "y": 1100, "w": 160, "h": 120, "shape": "rect", "r": 0},
-                    {"x": 1200, "y": 1300, "w": 160, "h": 120, "shape": "rect", "r": 0}
+                    {"x": 1200, "y": 1200, "w": 160, "h": 320, "shape": "rect", "r": 0}
                 ]
             }
         ]
@@ -253,8 +255,9 @@ class GameEngine:
         for b in config["bridges"]:
             self.bridges.append(Bridge(b["x"], b["y"], b["w"], b["h"], b["shape"], b["r"]))
             
-        # Portal centered
-        self.portal = Portal(1200, 1200)
+        # Portal position from level config
+        px, py = config.get("portal_pos", (1200, 1200))
+        self.portal = Portal(px, py)
             
         # Spawn bushes on land
         for _ in range(15):
@@ -745,7 +748,7 @@ class GameEngine:
         
         if self.rabbits_caught >= self.rabbits_needed:
             # Active escape prompt
-            obj_txt = self.font_header.render("PORTAL OPEN! RUN TO CENTER", True, (241, 196, 15))
+            obj_txt = self.font_header.render("PORTAL OPEN! RUN TO PORTAL", True, (241, 196, 15))
         else:
             obj_txt = self.font_body.render(f"Rabbits eaten: {self.rabbits_caught} / {self.rabbits_needed}", True, (255, 255, 255))
             
