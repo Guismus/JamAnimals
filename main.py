@@ -50,12 +50,17 @@ class GameEngine:
         self.is_night = False
         
         # States & Level System
-        self.state = 'menu' # 'menu', 'playing', 'paused', 'gameover', 'victory'
+        self.state = 'menu' # 'menu', 'playing', 'paused', 'gameover', 'victory', 'options'
         self.level_index = 0
         self.rabbits_caught = 0
         self.rabbits_needed = 5
         self.total_rabbits_caught = 0
         self.survival_frames = 0
+        
+        # Options & settings
+        self.difficulty = 'normal'
+        self.screen_shake = True
+        self.particles.quality = 'high'
         
         self.LEVEL_CONFIGS = LEVEL_CONFIGS
         
@@ -72,7 +77,15 @@ class GameEngine:
 
     def setup_buttons(self):
         # Menu Screen Buttons
-        self.play_btn = Button((580, 260, 280, 56), "START ADVENTURE", (244, 107, 45), (255, 125, 65), (255, 255, 255), 20)
+        self.play_btn = Button((0, 0, 180, 50), "PLAY GAME", (244, 107, 45), (255, 125, 65), (255, 255, 255), 18)
+        self.options_btn = Button((0, 0, 180, 50), "OPTIONS", (79, 92, 93), (95, 108, 109), (255, 255, 255), 18)
+        
+        # Options Screen Buttons
+        self.opt_sound_btn = Button((0, 0, 280, 48), "SOUND: ENABLED", (46, 204, 113), (39, 174, 96), (255, 255, 255), 18)
+        self.opt_diff_btn = Button((0, 0, 280, 48), "DIFFICULTY: NORMAL", (244, 107, 45), (255, 125, 65), (255, 255, 255), 18)
+        self.opt_shake_btn = Button((0, 0, 280, 48), "SHAKE: ENABLED", (46, 204, 113), (39, 174, 96), (255, 255, 255), 18)
+        self.opt_part_btn = Button((0, 0, 280, 48), "PARTICLES: HIGH", (46, 204, 113), (39, 174, 96), (255, 255, 255), 18)
+        self.opt_back_btn = Button((0, 0, 300, 50), "BACK TO MENU", (79, 92, 93), (95, 108, 109), (255, 255, 255), 18)
         
         # Pause Screen Buttons
         self.resume_btn = Button((362, 300, 300, 50), "RESUME", (46, 204, 113), (39, 174, 96), (255, 255, 255))
@@ -193,7 +206,17 @@ class GameEngine:
                 attempts += 1
             if attempts >= 20:
                 wx, wy = self.get_random_land_pos()
-        self.wolves.append(Wolf(wx, wy))
+        
+        wolf = Wolf(wx, wy)
+        # Adjust speed based on difficulty
+        if self.difficulty == 'easy':
+            wolf.base_speed = 1.3
+        elif self.difficulty == 'hard':
+            wolf.base_speed = 2.4
+        else:
+            wolf.base_speed = 1.9
+        wolf.speed = wolf.base_speed
+        self.wolves.append(wolf)
 
     def start_game(self):
         self.level_index = 0
@@ -215,11 +238,28 @@ class GameEngine:
         px, py = self.get_random_land_pos()
         self.player = Player(px, py)
         
+        # Adjust lives based on difficulty
+        if self.difficulty == 'easy':
+            self.player.max_lives = 4
+            self.player.lives = 4
+        elif self.difficulty == 'hard':
+            self.player.max_lives = 2
+            self.player.lives = 2
+        else:
+            self.player.max_lives = 3
+            self.player.lives = 3
+            
         # Spawn Level entities
         for _ in range(12):
             self.spawn_rabbit(True)
-        # Increase initial wolf counts in higher maps
+            
+        # Adjust initial wolf count based on difficulty
         w_count = 3 + self.level_index
+        if self.difficulty == 'easy':
+            w_count = max(1, w_count - 1)
+        elif self.difficulty == 'hard':
+            w_count = w_count + 1
+            
         for _ in range(w_count):
             self.spawn_wolf(True)
             
@@ -257,6 +297,8 @@ class GameEngine:
         self.sound.set_heartbeat_rate(0)
 
     def trigger_shake(self, intensity, frames):
+        if not self.screen_shake:
+            return
         self.shake_intensity = intensity
         self.shake_time = frames
 
@@ -498,6 +540,8 @@ class GameEngine:
             self.draw_hud()
         elif self.state == 'menu':
             self.draw_menu()
+        elif self.state == 'options':
+            self.draw_options()
         elif self.state == 'paused':
             self.draw_paused()
         elif self.state == 'gameover':
@@ -799,7 +843,7 @@ class GameEngine:
         badge_txt = self.font_body.render("Micro Jam 059  |  Theme: Animals  |  Prerequisite: Predator & Prey", True, (46, 204, 113))
         self.screen.blit(badge_txt, (w//2 - badge_txt.get_width()//2, badge_y))
 
-        # Left Column: How to play
+        # Left Column: How to play (Word Wrapped to prevent overflow)
         left_x = w//2 - 410
         left_y = badge_y + 40
         card_surf = pygame.Surface((400, 320), pygame.SRCALPHA)
@@ -812,65 +856,192 @@ class GameEngine:
         
         inst_y = left_y + 54
         instructions = [
-            "You are a Fox. You are BOTH predator and prey!",
+            "You are a Fox, both predator and prey!",
             "",
-            "• HUNT: Catch Rabbits to restore energy (Hunger meter).",
-            "• WATERS: Lakes & rivers block you. Slide along shorelines.",
-            "• BRIDGES: Use walkable wooden structures to cross waters.",
-            "• ESCAPE: Catch 5 Rabbits to open the central Portal ring.",
+            "• HUNT: Catch Rabbits to restore energy.",
+            "• WATER: Lakes & rivers block your movement.",
+            "• BRIDGES: Walk on bridges to cross water.",
+            "• ESCAPE: Eat 5 Rabbits to activate the portal.",
             "",
             "CONTROLS:",
-            "  - Keyboard: W, A, S, D or ARROWS to move.",
-            "  - Sprint/Dash: SPACE (costs hunger, 1.5s cooldown).",
-            "  - Mouse: Click and Drag to steer. Right-Click to dash."
+            "  - Move: W, A, S, D or ARROWS",
+            "  - Dash: SPACE (costs hunger, 1.5s CD)",
+            "  - Mouse: Click/drag to steer, Right click to dash"
         ]
+        
+        max_txt_w = 360
         for inst in instructions:
-            t = self.font_body.render(inst, True, (200, 215, 205) if "•" in inst else (143, 168, 150))
-            self.screen.blit(t, (left_x + 20, inst_y))
-            inst_y += 22
+            if inst == "":
+                inst_y += 10
+                continue
+                
+            words = inst.split(' ')
+            lines = []
+            current_line = []
+            for word in words:
+                test_line = ' '.join(current_line + [word])
+                if self.font_body.size(test_line)[0] <= max_txt_w:
+                    current_line.append(word)
+                else:
+                    if current_line:
+                        lines.append(' '.join(current_line))
+                    current_line = [word]
+            if current_line:
+                lines.append(' '.join(current_line))
+                
+            for line in lines:
+                color = (200, 215, 205) if "•" in inst else (143, 168, 150)
+                t = self.font_body.render(line, True, color)
+                self.screen.blit(t, (left_x + 20, inst_y))
+                inst_y += 18
 
-        # Right Column: Adventure levels list
+        # Right Column: Controls, Play & Options
         right_x = w//2 + 30
         right_y = badge_y + 40
         
-        # Audio setting card
-        audio_card = pygame.Surface((380, 60), pygame.SRCALPHA)
-        pygame.draw.rect(audio_card, (0, 0, 0, 105), (0, 0, 380, 60), border_radius=12)
-        pygame.draw.rect(audio_card, (46, 204, 113, 40), (0, 0, 380, 60), width=1, border_radius=12)
-        self.screen.blit(audio_card, (right_x, right_y))
-        
-        audio_lbl = self.font_body.render("Synthesized Sound FX:", True, (200, 210, 202))
-        self.screen.blit(audio_lbl, (right_x + 20, right_y + 20))
-        
-        audio_state = "ENABLED" if self.sound.enabled else "DISABLED"
-        audio_col = (46, 204, 113) if self.sound.enabled else (231, 76, 60)
-        audio_status = self.font_header.render(audio_state, True, audio_col)
-        self.screen.blit(audio_status, (right_x + 240, right_y + 18))
-
-        # Start Button
-        self.play_btn.rect.topleft = (right_x + 50, right_y + 80)
+        # Dual Buttons (Play & Options side by side)
+        self.play_btn.rect.topleft = (right_x + 5, right_y)
         self.play_btn.draw(self.screen)
+        
+        self.options_btn.rect.topleft = (right_x + 195, right_y)
+        self.options_btn.draw(self.screen)
 
-        # Levels Progress Card (Replaced Leaderboard)
-        lead_y = right_y + 155
-        level_card = pygame.Surface((380, 165), pygame.SRCALPHA)
-        pygame.draw.rect(level_card, (0, 0, 0, 105), (0, 0, 380, 165), border_radius=16)
-        pygame.draw.rect(level_card, (46, 204, 113, 40), (0, 0, 380, 165), width=1, border_radius=16)
+        # Levels Progress Card (Shifted Upwards)
+        lead_y = right_y + 75
+        level_card = pygame.Surface((380, 245), pygame.SRCALPHA)
+        pygame.draw.rect(level_card, (0, 0, 0, 105), (0, 0, 380, 245), border_radius=16)
+        pygame.draw.rect(level_card, (46, 204, 113, 40), (0, 0, 380, 245), width=1, border_radius=16)
         self.screen.blit(level_card, (right_x, lead_y))
         
         lead_lbl = self.font_subtitle.render("ADVENTURE MAPS", True, (241, 196, 15))
         self.screen.blit(lead_lbl, (right_x + 105, lead_y + 12))
         
-        list_y = lead_y + 42
+        list_y = lead_y + 45
         for i, cfg in enumerate(self.LEVEL_CONFIGS):
             col = (46, 204, 113) if i == 0 else (200, 210, 202)
             lbl = self.font_body.render(f"Map {i+1}: {cfg['name']}", True, col)
             self.screen.blit(lbl, (right_x + 20, list_y))
-            list_y += 32
+            
+            # Word wrap description
+            desc = cfg['description']
+            words = desc.split(' ')
+            lines = []
+            current_line = []
+            for word in words:
+                test_line = ' '.join(current_line + [word])
+                if self.font_body.size(test_line)[0] <= 340:
+                    current_line.append(word)
+                else:
+                    if current_line:
+                        lines.append(' '.join(current_line))
+                    current_line = [word]
+            if current_line:
+                lines.append(' '.join(current_line))
+                
+            desc_y = list_y + 18
+            for line in lines:
+                desc_lbl = self.font_body.render(f"   {line}", True, (130, 145, 135))
+                self.screen.blit(desc_lbl, (right_x + 20, desc_y))
+                desc_y += 16
+                
+            list_y += 18 + len(lines) * 16 + 10
 
         # Footer
         footer = self.font_body.render("Created for Micro Jam 059  •  Sound synthesized locally  •  2026", True, (90, 110, 95))
         self.screen.blit(footer, (w//2 - footer.get_width()//2, h//2 + 270))
+
+    def draw_options(self):
+        w, h = self.screen.get_size()
+        bg = pygame.Surface((w, h), pygame.SRCALPHA)
+        bg.fill((2, 8, 4, 210))
+        self.screen.blit(bg, (0, 0))
+
+        # Main glass panel
+        panel = pygame.Surface((900, 600), pygame.SRCALPHA)
+        panel.fill((6, 20, 10, 195))
+        pygame.draw.rect(panel, (46, 204, 113, 40), (0, 0, 900, 600), border_radius=24, width=1)
+        self.screen.blit(panel, (w//2 - 450, h//2 - 300))
+
+        # Title
+        title_y = h//2 - 240
+        txt_title = self.font_title.render("GAME OPTIONS", True, (244, 107, 45))
+        self.screen.blit(txt_title, (w//2 - txt_title.get_width()//2, title_y))
+        
+        txt_sub = self.font_subtitle.render("FINE-TUNE YOUR ADVENTURE SETTINGS", True, (143, 168, 150))
+        self.screen.blit(txt_sub, (w//2 - txt_sub.get_width()//2, title_y + 60))
+
+        # Left labels and right buttons layout
+        x_lbl = w//2 - 380
+        x_btn = w//2 + 50
+        y_start = h//2 - 100
+        
+        # Row 1: Sound FX
+        sound_lbl = self.font_header.render("SOUND FX SYNTHESIS", True, (200, 215, 205))
+        self.screen.blit(sound_lbl, (x_lbl, y_start + 12))
+        
+        if self.sound.enabled:
+            self.opt_sound_btn.text = "SOUND: ENABLED"
+            self.opt_sound_btn.bg_color = (46, 204, 113)
+            self.opt_sound_btn.hover_color = (39, 174, 96)
+        else:
+            self.opt_sound_btn.text = "SOUND: DISABLED"
+            self.opt_sound_btn.bg_color = (231, 76, 60)
+            self.opt_sound_btn.hover_color = (192, 57, 43)
+        self.opt_sound_btn.rect.topleft = (x_btn, y_start)
+        self.opt_sound_btn.draw(self.screen)
+        
+        # Row 2: Difficulty
+        diff_lbl = self.font_header.render("GAMEPLAY DIFFICULTY", True, (200, 215, 205))
+        self.screen.blit(diff_lbl, (x_lbl, y_start + 72))
+        
+        if self.difficulty == 'easy':
+            self.opt_diff_btn.text = "DIFFICULTY: EASY"
+            self.opt_diff_btn.bg_color = (46, 204, 113)
+            self.opt_diff_btn.hover_color = (39, 174, 96)
+        elif self.difficulty == 'normal':
+            self.opt_diff_btn.text = "DIFFICULTY: NORMAL"
+            self.opt_diff_btn.bg_color = (244, 107, 45)
+            self.opt_diff_btn.hover_color = (255, 125, 65)
+        else:
+            self.opt_diff_btn.text = "DIFFICULTY: HARD"
+            self.opt_diff_btn.bg_color = (231, 76, 60)
+            self.opt_diff_btn.hover_color = (192, 57, 43)
+        self.opt_diff_btn.rect.topleft = (x_btn, y_start + 60)
+        self.opt_diff_btn.draw(self.screen)
+        
+        # Row 3: Screen Shake
+        shake_lbl = self.font_header.render("TACTICAL SCREEN SHAKE", True, (200, 215, 205))
+        self.screen.blit(shake_lbl, (x_lbl, y_start + 132))
+        
+        if self.screen_shake:
+            self.opt_shake_btn.text = "SHAKE: ENABLED"
+            self.opt_shake_btn.bg_color = (46, 204, 113)
+            self.opt_shake_btn.hover_color = (39, 174, 96)
+        else:
+            self.opt_shake_btn.text = "SHAKE: DISABLED"
+            self.opt_shake_btn.bg_color = (231, 76, 60)
+            self.opt_shake_btn.hover_color = (192, 57, 43)
+        self.opt_shake_btn.rect.topleft = (x_btn, y_start + 120)
+        self.opt_shake_btn.draw(self.screen)
+        
+        # Row 4: VFX Particles
+        part_lbl = self.font_header.render("VFX PARTICLES QUALITY", True, (200, 215, 205))
+        self.screen.blit(part_lbl, (x_lbl, y_start + 192))
+        
+        if self.particles.quality == 'high':
+            self.opt_part_btn.text = "PARTICLES: HIGH"
+            self.opt_part_btn.bg_color = (46, 204, 113)
+            self.opt_part_btn.hover_color = (39, 174, 96)
+        else:
+            self.opt_part_btn.text = "PARTICLES: LOW"
+            self.opt_part_btn.bg_color = (231, 76, 60)
+            self.opt_part_btn.hover_color = (192, 57, 43)
+        self.opt_part_btn.rect.topleft = (x_btn, y_start + 180)
+        self.opt_part_btn.draw(self.screen)
+        
+        # Back Button
+        self.opt_back_btn.rect.topleft = (w//2 - 150, h//2 + 190)
+        self.opt_back_btn.draw(self.screen)
 
     def draw_paused(self):
         w, h = self.screen.get_size()
@@ -956,6 +1127,13 @@ class GameEngine:
             # Button states update
             if self.state == 'menu':
                 self.play_btn.update(mouse_pos)
+                self.options_btn.update(mouse_pos)
+            elif self.state == 'options':
+                self.opt_sound_btn.update(mouse_pos)
+                self.opt_diff_btn.update(mouse_pos)
+                self.opt_shake_btn.update(mouse_pos)
+                self.opt_part_btn.update(mouse_pos)
+                self.opt_back_btn.update(mouse_pos)
             elif self.state == 'paused':
                 self.resume_btn.update(mouse_pos)
                 self.quit_btn.update(mouse_pos)
@@ -983,18 +1161,33 @@ class GameEngine:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 3 and self.state == 'playing':
                         self.player.trigger_dash(self.particles, self.sound)
-                        
-                    if self.state == 'menu' and event.button == 1:
-                        w, h = self.screen.get_size()
-                        toggle_rect = pygame.Rect(w//2 + 30, h//2 - 130 + 40, 380, 60)
-                        if toggle_rect.collidepoint(mouse_pos):
-                            self.sound.set_enabled(not self.sound.enabled)
-                            self.sound.play("catch")
 
                 # Handle clicks on buttons
                 if self.state == 'menu':
                     if self.play_btn.handle_event(event, mouse_pos):
                         self.start_game()
+                    elif self.options_btn.handle_event(event, mouse_pos):
+                        self.state = 'options'
+                        self.sound.play("catch")
+                elif self.state == 'options':
+                    if self.opt_sound_btn.handle_event(event, mouse_pos):
+                        self.sound.set_enabled(not self.sound.enabled)
+                        self.sound.play("catch")
+                    elif self.opt_diff_btn.handle_event(event, mouse_pos):
+                        # Cycle through difficulty levels
+                        diffs = ['easy', 'normal', 'hard']
+                        idx = (diffs.index(self.difficulty) + 1) % len(diffs)
+                        self.difficulty = diffs[idx]
+                        self.sound.play("catch")
+                    elif self.opt_shake_btn.handle_event(event, mouse_pos):
+                        self.screen_shake = not self.screen_shake
+                        self.sound.play("catch")
+                    elif self.opt_part_btn.handle_event(event, mouse_pos):
+                        self.particles.quality = 'low' if self.particles.quality == 'high' else 'high'
+                        self.sound.play("catch")
+                    elif self.opt_back_btn.handle_event(event, mouse_pos):
+                        self.state = 'menu'
+                        self.sound.play("catch")
                 elif self.state == 'paused':
                     if self.resume_btn.handle_event(event, mouse_pos):
                         self.resume_game()

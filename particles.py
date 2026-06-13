@@ -77,6 +77,7 @@ class Particle:
 class ParticleSystem:
     def __init__(self):
         self.particles = []
+        self.quality = 'high' # 'high' or 'low'
 
     def update(self):
         self.particles = [p for p in self.particles if p.update()]
@@ -92,6 +93,8 @@ class ParticleSystem:
         self.particles.clear()
 
     def spawn_dust(self, x, y):
+        if self.quality == 'low' and random.random() < 0.7:
+            return
         count = 1 if random.random() < 0.4 else 2
         for _ in range(count):
             vx = random.uniform(-0.4, 0.4)
@@ -104,6 +107,8 @@ class ParticleSystem:
             ))
 
     def spawn_splash(self, x, y):
+        if self.quality == 'low' and random.random() < 0.7:
+            return
         count = random.randint(3, 5)
         for _ in range(count):
             angle = random.uniform(0, math.pi * 2)
@@ -118,6 +123,8 @@ class ParticleSystem:
             ))
 
     def spawn_leaves(self, x, y):
+        if self.quality == 'low' and random.random() < 0.7:
+            return
         count = random.randint(4, 7)
         for _ in range(count):
             angle = random.uniform(0, math.pi * 2)
@@ -133,6 +140,8 @@ class ParticleSystem:
             ))
 
     def spawn_bite(self, x, y):
+        if self.quality == 'low' and random.random() < 0.7:
+            return
         count = random.randint(12, 19)
         for _ in range(count):
             angle = random.uniform(0, math.pi * 2)
@@ -147,6 +156,8 @@ class ParticleSystem:
             ))
 
     def spawn_eat(self, x, y, is_berry=False):
+        if self.quality == 'low' and random.random() < 0.7:
+            return
         count = random.randint(8, 11)
         color = (241, 196, 15, 255) if is_berry else (231, 76, 60, 255)
         for _ in range(count):
@@ -161,6 +172,8 @@ class ParticleSystem:
             ))
 
     def spawn_fireflies(self, view_w, view_h, camera_x, camera_y):
+        if self.quality == 'low' and random.random() < 0.7:
+            return
         x = camera_x + random.uniform(0, view_w)
         y = camera_y + random.uniform(0, view_h)
         vx = random.uniform(-0.2, 0.2)
