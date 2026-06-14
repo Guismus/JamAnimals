@@ -1,13 +1,13 @@
 # Programmatic WAV sound generator for WildChain: Apex Hunt (Pygame Port)
 import math
 import struct
-import wave
 import os
 import random
 
 SAMPLE_RATE = 22050
 
 def write_wav(filename, samples):
+    import wave
     # Ensure directory exists
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with wave.open(filename, 'wb') as wav_file:
