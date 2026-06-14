@@ -8,7 +8,10 @@ class SoundController:
         self.enabled = True
         self.sounds = {}
         # Pre-synthesize sound files if missing
-        sound_gen.generate_all_sounds("sounds")
+        try:
+            sound_gen.generate_all_sounds("sounds")
+        except Exception as e:
+            print(f"Failed to generate sounds: {e}")
         
         # Load WAV files
         sound_files = ["catch", "dash", "hurt", "alert", "night", "heartbeat"]
