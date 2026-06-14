@@ -5,6 +5,7 @@ import os
 import json
 import math
 import random
+import asyncio
 import sound_gen
 from entities import Player, Rabbit, Wolf, Lake, Bridge, Portal, Bush, Burrow, Berry, is_in_impassable_water
 from particles import ParticleSystem, draw_circle_alpha, draw_rect_alpha
@@ -1120,7 +1121,7 @@ class GameEngine:
         self.victory_menu_btn.draw(self.screen)
 
     # --- MAIN ENGINE RUN ---
-    def run(self):
+    async def run(self):
         while True:
             mouse_pos = pygame.mouse.get_pos()
             
@@ -1207,7 +1208,8 @@ class GameEngine:
             self.update()
             self.draw()
             self.clock.tick(60)
+            await asyncio.sleep(0)
 
 if __name__ == "__main__":
     game = GameEngine()
-    game.run()
+    asyncio.run(game.run())
