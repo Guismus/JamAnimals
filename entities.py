@@ -97,7 +97,7 @@ class Player(Entity):
         self.is_dashing = True
         self.dash_duration = 15
         self.dash_cooldown = 90
-        self.hunger -= 6.0
+        self.hunger -= 12.0
         
         for _ in range(5):
             particles.spawn_dust(self.x, self.y)
@@ -106,7 +106,7 @@ class Player(Entity):
     def update(self, arena_w, arena_h, obstacles, lakes, bridges, particles, sound_controller):
         # Hunger decay
         if self.hunger > 0:
-            self.hunger -= 0.08 if self.is_dashing else 0.022
+            self.hunger -= 0.16 if self.is_dashing else 0.044
         else:
             self.hunger = 0.0
             if random.random() < 0.003:
