@@ -18,7 +18,10 @@ class GameEngine:
         pygame.init()
         pygame.mixer.init()
         
-        self.screen = pygame.display.set_mode((1024, 768), pygame.RESIZABLE)
+        if sys.platform == 'emscripten':
+            self.screen = pygame.display.set_mode((1024, 768))
+        else:
+            self.screen = pygame.display.set_mode((1024, 768), pygame.RESIZABLE)
         pygame.display.set_caption("WildChain: Apex Hunt")
         self.clock = pygame.time.Clock()
         
@@ -1150,7 +1153,7 @@ class GameEngine:
                     pygame.quit()
                     sys.exit()
                     
-                elif event.type == pygame.VIDEORESIZE:
+                elif event.type == pygame.VIDEORESIZE and sys.platform != 'emscripten':
                     self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
                     
                 elif event.type == pygame.KEYDOWN:
